@@ -4,22 +4,22 @@ export const handleGitHubError = (error: unknown): Error => {
       return new Error("Invalid GitHub token. Please check your credentials.");
     } else if (error.message.includes("rate limit")) {
       return new Error(
-        "GitHub API rate limit exceeded. Please try again later."
+        "GitHub API rate limit exceeded. Please try again later.",
       );
     } else if (
       error.message.includes("ENOTFOUND") ||
       error.message.includes("network")
     ) {
       return new Error(
-        "Unable to connect to GitHub. Please check your internet connection."
+        "Unable to connect to GitHub. Please check your internet connection.",
       );
     } else if (
       error.message.includes(
-        "Resource protected by organization SAML enforcement"
+        "Resource protected by organization SAML enforcement",
       )
     ) {
       return new Error(
-        "GitHub token is missing authorization for organizations that use SSO. Please re-authenticate to fix this."
+        "GitHub token is missing authorization for organizations that use SSO. Please re-authenticate to fix this.",
       );
     } else {
       return error;

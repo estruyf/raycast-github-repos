@@ -1,6 +1,22 @@
 import { handleGitHubError } from "../lib/github-client";
 import { getOctokit } from "../lib/oauth";
 
+interface GitHubRepoResponse {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  stargazers_count?: number;
+  language?: string | null;
+  updated_at?: string | null;
+  pushed_at?: string | null;
+  private: boolean;
+  owner?: {
+    login: string;
+  };
+}
+
 export interface Repository {
   id: string;
   name: string;
@@ -61,24 +77,29 @@ export const fetchRepositories = async (): Promise<Repository[]> => {
     });
 
     // Transform and calculate usage scores
-    const repositories: Repository[] = repos.map((repo: any) => ({
-      id: repo.id.toString(),
-      name: repo.name,
-      owner: repo.owner?.login || "",
-      fullName: repo.full_name,
-      description: repo.description,
-      url: repo.html_url,
-      stars: repo.stargazers_count || 0,
-      language: repo.language,
-      updatedAt: repo.updated_at,
-      pushedAt: repo.pushed_at || repo.updated_at,
-      isPrivate: repo.private,
-      usageScore: calculateUsageScore({
-        stargazers_count: repo.stargazers_count || 0,
-        updated_at: repo.updated_at,
-        pushed_at: repo.pushed_at || repo.updated_at,
-      }),
-    }));
+    const repositories: Repository[] = repos.map((repo: GitHubRepoResponse) => {
+      const updatedAt = repo.updated_at || new Date().toISOString();
+      const pushedAt = repo.pushed_at || updatedAt;
+
+      return {
+        id: repo.id.toString(),
+        name: repo.name,
+        owner: repo.owner?.login || "",
+        fullName: repo.full_name,
+        description: repo.description,
+        url: repo.html_url,
+        stars: repo.stargazers_count || 0,
+        language: repo.language ?? null,
+        updatedAt,
+        pushedAt,
+        isPrivate: repo.private,
+        usageScore: calculateUsageScore({
+          stargazers_count: repo.stargazers_count || 0,
+          updated_at: updatedAt,
+          pushed_at: pushedAt,
+        }),
+      };
+    });
 
     // Sort by usage score (highest first)
     repositories.sort((a, b) => b.usageScore - a.usageScore);
@@ -93,7 +114,7 @@ export const fetchRepositories = async (): Promise<Repository[]> => {
  * Fetch repositories for a specific owner/organization
  */
 export const fetchRepositoriesByOwner = async (
-  owner: string
+  owner: string,
 ): Promise<Repository[]> => {
   const octokit = getOctokit();
 
@@ -104,24 +125,29 @@ export const fetchRepositoriesByOwner = async (
       per_page: 100,
     });
 
-    const repositories: Repository[] = repos.map((repo: any) => ({
-      id: repo.id.toString(),
-      name: repo.name,
-      owner: repo.owner?.login || "",
-      fullName: repo.full_name,
-      description: repo.description,
-      url: repo.html_url,
-      stars: repo.stargazers_count || 0,
-      language: repo.language,
-      updatedAt: repo.updated_at,
-      pushedAt: repo.pushed_at || repo.updated_at,
-      isPrivate: repo.private,
-      usageScore: calculateUsageScore({
-        stargazers_count: repo.stargazers_count || 0,
-        updated_at: repo.updated_at,
-        pushed_at: repo.pushed_at || repo.updated_at,
-      }),
-    }));
+    const repositories: Repository[] = repos.map((repo: GitHubRepoResponse) => {
+      const updatedAt = repo.updated_at || new Date().toISOString();
+      const pushedAt = repo.pushed_at || updatedAt;
+
+      return {
+        id: repo.id.toString(),
+        name: repo.name,
+        owner: repo.owner?.login || "",
+        fullName: repo.full_name,
+        description: repo.description,
+        url: repo.html_url,
+        stars: repo.stargazers_count || 0,
+        language: repo.language ?? null,
+        updatedAt,
+        pushedAt,
+        isPrivate: repo.private,
+        usageScore: calculateUsageScore({
+          stargazers_count: repo.stargazers_count || 0,
+          updated_at: updatedAt,
+          pushed_at: pushedAt,
+        }),
+      };
+    });
 
     repositories.sort((a, b) => b.usageScore - a.usageScore);
 

@@ -40,7 +40,7 @@ export const reauthorize = async (): Promise<string> => {
 export const getOctokit = (): Octokit => {
   if (!octokitInstance) {
     throw new Error(
-      "Octokit instance not initialized. Please authenticate first."
+      "Octokit instance not initialized. Please authenticate first.",
     );
   }
 

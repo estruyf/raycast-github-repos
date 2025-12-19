@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { List, ActionPanel, Action, Icon, Color, showToast, Toast, LocalStorage } from "@raycast/api";
+import {
+  List,
+  ActionPanel,
+  Action,
+  Icon,
+  Color,
+  showToast,
+  Toast,
+  LocalStorage,
+} from "@raycast/api";
 import { withAccessToken } from "@raycast/utils";
 import { fetchRepositories, Repository } from "./services/repositories";
 import { provider } from "./lib/oauth";
@@ -23,7 +32,7 @@ async function updateAccessTime(repoId: string): Promise<void> {
 
 function sortRepositoriesByAccess(
   repos: Repository[],
-  accessTimes: RepositoryAccessTimes
+  accessTimes: RepositoryAccessTimes,
 ): Repository[] {
   return [...repos].sort((a, b) => {
     const aTime = accessTimes[a.id] || 0;
@@ -39,7 +48,9 @@ function sortRepositoriesByAccess(
 
 function MyRepositoriesCommand() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [sortedRepositories, setSortedRepositories] = useState<Repository[]>([]);
+  const [sortedRepositories, setSortedRepositories] = useState<Repository[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string>("");
@@ -64,7 +75,8 @@ function MyRepositoriesCommand() {
           setCurrentUser(user.login);
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to load repositories";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load repositories";
         setError(errorMessage);
         await showToast({
           style: Toast.Style.Failure,
