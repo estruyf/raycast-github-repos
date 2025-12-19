@@ -24,6 +24,12 @@ for quick access.
 
 1. Open Raycast
 2. Search for "My GitHub Repositories"
+  - If it is the first time, you will be prompted to authenticate with GitHub
+  - Click on the "Sign in with GitHub" button and approve the requested
+    permissions
+        
+    ![GitHub Authentication](assets/screenshot2.png)
+  - After authentication, the extension will load your repositories
 3. Browse your repositories sorted by usage
 4. Press Enter on any repository to open it in your browser
 
