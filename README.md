@@ -5,7 +5,7 @@ learns which repositories you access most frequently and keeps them at the top
 for quick access.
 
 <div align="center">
-  <img src="assets/screenshot1.png" alt="GitHub Repositories" width="300">
+  <img src="assets/screenshot1.png" alt="GitHub Repositories">
   <p><em>GitHub Repositories</em></p>
 </div>
 
