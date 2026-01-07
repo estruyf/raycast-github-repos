@@ -11,9 +11,12 @@ import {
 } from "@raycast/api";
 import { withAccessToken } from "@raycast/utils";
 import { fetchRepositories, Repository } from "./services/repositories";
-import { provider } from "./lib/oauth";
+import { provider, getOctokit } from "./lib/oauth";
 
 const STORAGE_KEY = "repository-access-times";
+const CACHE_KEY = "repositories-cache";
+const CACHE_TIMESTAMP_KEY = "repositories-cache-timestamp";
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 interface RepositoryAccessTimes {
   [repoId: string]: number; // timestamp
@@ -28,6 +31,24 @@ async function updateAccessTime(repoId: string): Promise<void> {
   const accessTimes = await getAccessTimes();
   accessTimes[repoId] = Date.now();
   await LocalStorage.setItem(STORAGE_KEY, JSON.stringify(accessTimes));
+}
+
+async function getCachedRepositories(): Promise<Repository[] | null> {
+  const cached = await LocalStorage.getItem<string>(CACHE_KEY);
+  if (!cached) return null;
+  return JSON.parse(cached);
+}
+
+async function setCachedRepositories(repos: Repository[]): Promise<void> {
+  await LocalStorage.setItem(CACHE_KEY, JSON.stringify(repos));
+  await LocalStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+}
+
+async function isCacheValid(): Promise<boolean> {
+  const timestamp = await LocalStorage.getItem<string>(CACHE_TIMESTAMP_KEY);
+  if (!timestamp) return false;
+  const age = Date.now() - parseInt(timestamp, 10);
+  return age < CACHE_DURATION;
 }
 
 function sortRepositoriesByAccess(
@@ -59,20 +80,53 @@ function MyRepositoriesCommand() {
   useEffect(() => {
     async function loadRepositories() {
       try {
-        setIsLoading(true);
-        setError(null);
-        const repos = await fetchRepositories();
         const times = await getAccessTimes();
 
-        setRepositories(repos);
-        setAccessTimes(times);
-        setSortedRepositories(sortRepositoriesByAccess(repos, times));
+        // Load cached data first if available
+        const cachedRepos = await getCachedRepositories();
+        if (cachedRepos && cachedRepos.length > 0) {
+          setRepositories(cachedRepos);
+          setAccessTimes(times);
+          setSortedRepositories(sortRepositoriesByAccess(cachedRepos, times));
 
-        // Get current user for categorization
-        if (repos.length > 0) {
-          const octokit = (await import("./lib/oauth")).getOctokit();
-          const { data: user } = await octokit.rest.users.getAuthenticated();
-          setCurrentUser(user.login);
+          // Get current user from cache
+          if (cachedRepos.length > 0 && cachedRepos[0].owner) {
+            try {
+              const octokit = getOctokit();
+              const { data: user } = await octokit.rest.users.getAuthenticated();
+              setCurrentUser(user.login);
+            } catch {
+              // Silently fail for user fetch
+            }
+          }
+
+          // If cache is still valid, just stop loading indicator
+          const cacheValid = await isCacheValid();
+          if (cacheValid) {
+            setIsLoading(false);
+          }
+        }
+
+        // Fetch fresh data in the background (always, but don't show loading if we have cache)
+        const cacheValid = await isCacheValid();
+        if (!cacheValid || !cachedRepos) {
+          setError(null);
+
+          const repos = await fetchRepositories();
+
+          // Cache the fresh data
+          await setCachedRepositories(repos);
+
+          setRepositories(repos);
+          setAccessTimes(times);
+          setSortedRepositories(sortRepositoriesByAccess(repos, times));
+
+          // Get current user for categorization
+          if (repos.length > 0) {
+            const octokit = getOctokit();
+            const { data: user } = await octokit.rest.users.getAuthenticated();
+            setCurrentUser(user.login);
+          }
         }
       } catch (err) {
         const errorMessage =
